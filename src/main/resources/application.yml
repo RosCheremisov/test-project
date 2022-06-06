@@ -1,0 +1,19 @@
+server:
+  port: 8085
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQL81Dialect
+        default_schema: testproject
+    show-sql: true
+  flyway:
+    enabled: true
+    schemas: testproject
+  datasource:
+    url: jdbc:postgresql://localhost:5432/test_project_db
+    username: postgres
+    password: postgres
