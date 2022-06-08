@@ -1,6 +1,6 @@
 package com.testproject.controller;
 
-import com.testproject.entity.Item;
+import com.testproject.dto.ItemResponse;
 import com.testproject.service.ItemService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,8 +15,9 @@ public class ItemController {
     private final ItemService itemService;
 
     @GetMapping("/min")
-    public Item fetchItemByMinPrice(){
+    public ItemResponse fetchItemByMinPrice(){
         return itemService.findItemByMinPrice();
     }
+
 
 }

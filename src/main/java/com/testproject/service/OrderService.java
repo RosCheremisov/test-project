@@ -1,20 +1,22 @@
 package com.testproject.service;
 
-import com.testproject.entity.Item;
-import com.testproject.entity.ItemTemplate;
-import com.testproject.entity.Order;
-import com.testproject.entity.UnpaidOrder;
+import com.testproject.dto.OrderItemRequest;
+import com.testproject.dto.OrderResponse;
+import com.testproject.entity.db.OrderItem;
+import com.testproject.entity.redis.ItemTemplate;
+import com.testproject.entity.db.Item;
+import com.testproject.entity.db.Order;
+import com.testproject.entity.redis.UnpaidOrder;
 import com.testproject.repository.ItemRepository;
 import com.testproject.repository.OrderRepository;
-import com.testproject.repository.UnpaidOrderRepository;
+import com.testproject.repository.RedisOrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.TimeToLive;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -24,75 +26,94 @@ import java.util.stream.Collectors;
 @Slf4j
 public class OrderService {
 
-    @Value("${redis.time-to-live-in-seconds}")
-    private int timeToLive;
-
     private final OrderRepository orderRepository;
     private final ItemRepository itemRepository;
-    private final UnpaidOrderRepository unpaidOrderRepository;
+    private final RedisOrderRepository redisOrderRepository;
 
 
-    public UnpaidOrder createOrder(Map<String, Integer> selectedItems) throws Exception {
-        if(!selectedItems.isEmpty()){
-            UnpaidOrder order = new UnpaidOrder();
-            List<Item> items = itemRepository.findItemsByItemNameIn(selectedItems.keySet());
-            for (String itemName: selectedItems.keySet()){
-                for(Item item : items) {
-                    if (itemName.equals(item.getItemName())) {
-                        if (item.getQuantity() >= item.getQuantity()) {
-                            order.setPrice(order.getPrice() + (item.getPrice() * selectedItems.get(itemName)));
-                            order.getItems().add(createItemTemplate(item, selectedItems.get(itemName)));
-                            break;
-                        } else throw new Exception("Haven't enough items: " + itemName);
-                    }
-                }
+
+    public UnpaidOrder createOrder() {
+        return redisOrderRepository.save(new UnpaidOrder());
+    }
+
+    public void addItem(OrderItemRequest itemRequest) throws Exception {
+        Optional<UnpaidOrder> orderOptional = redisOrderRepository.findById(itemRequest.getOrderId());
+        if(orderOptional.isPresent()){
+            UnpaidOrder unpaidOrder = prepareUnpaidOrder(orderOptional.get(), prepareItemTemplate(itemRequest));
+            unpaidOrder.setId(itemRequest.getOrderId());
+            redisOrderRepository.save(unpaidOrder);
+        }else throw new Exception("Exception");
+    }
+
+    @Transactional
+    public Order payAndSave(Long orderId) throws Exception {
+        Optional<UnpaidOrder> orderOptional = redisOrderRepository.findById(orderId);
+        if(orderOptional.isPresent()){
+            for(ItemTemplate item: orderOptional.get().getItems()){
+                if(isPositiveBalance(item)){
+                    itemRepository.reduceBalance(calculateQuantity(item), item.getItemName());
+                }else throw new Exception("Haven't enough item");
             }
-            order.setTtl(timeToLive);
-            order.setQuantity(countItem(order.getItems()));
-            return unpaidOrderRepository.save(order);
+            return orderRepository.save(prepareOrder(orderOptional.get()));
         }
-        throw new Exception("failed save");
+        else throw new Exception("Exception");
     }
 
-    public Order payAndSaveOrder(Long orderId) throws Exception {
-        Optional<UnpaidOrder> unpaidOrder = unpaidOrderRepository.findById(orderId);
-        if(unpaidOrder.isPresent()){
-            UnpaidOrder noOrder = unpaidOrder.get();
-            Order order =  new Order();
-            order.setPrice(noOrder.getPrice());
-            order.setQuantity(noOrder.getQuantity());
-
-            List<Item> items = itemRepository.findItemsByItemNameIn(order.getItems().stream().map(Item::getItemName).collect(Collectors.toSet()));
-            for(ItemTemplate template: noOrder.getItems()){
-                for(Item item: items){
-                    if(template.getItemName().equals(item.getItemName())){
-                        item.setQuantity(template.getQuantity());
-                        order.getItems().add(item);
-                        itemRepository.residueReduction(template.getItemName(), template.getQuantity());
-                    }
-                }
-            }
-            return orderRepository.save(order);
-        }
-        throw new Exception("Check out time is over");
+    private boolean isPositiveBalance(ItemTemplate itemTemplate){
+        List<Item> items = (List<Item>) itemRepository.findAll();
+        return items.stream().filter(i -> i.getId().equals(itemTemplate.getId()))
+                .anyMatch(i -> i.getQuantity() >= itemTemplate.getQuantity());
     }
 
-    public List<UnpaidOrder> findAll(){
-        return unpaidOrderRepository.findAll();
+    private UnpaidOrder prepareUnpaidOrder(UnpaidOrder unpaidOrder, ItemTemplate itemTemplate){
+        unpaidOrder.setPrice(unpaidOrder.getPrice() + (itemTemplate.getPrice() * itemTemplate.getQuantity()));
+        unpaidOrder.getItems().add(itemTemplate);
+        unpaidOrder.setQuantity(countItem(unpaidOrder.getItems()));
+        return unpaidOrder;
+    }
+
+    private Order prepareOrder(UnpaidOrder unpaidOrder){
+        Order order = new Order();
+        order.setPrice(unpaidOrder.getPrice());
+        order.setQuantity(unpaidOrder.getQuantity());
+        order.setItems(unpaidOrder.getItems().stream().map(this::convertItem).collect(Collectors.toList()));
+        return order;
     }
 
 
-    private ItemTemplate createItemTemplate(Item item, int quantity){
-        ItemTemplate itemTemplate = new ItemTemplate();
-        itemTemplate.setItemName(item.getItemName());
-        itemTemplate.setPrice(item.getPrice());
-        itemTemplate.setQuantity(quantity);
-        return itemTemplate;
+    private ItemTemplate prepareItemTemplate(OrderItemRequest orderItemRequest) throws Exception {
+        Optional<Item> itemOptional = itemRepository.findById(orderItemRequest.getItemId());
+        if (itemOptional.isPresent()){
+            ItemTemplate itemTemplate = new ItemTemplate();
+            itemTemplate.setId(itemOptional.get().getId());
+            itemTemplate.setItemName(itemOptional.get().getName());
+            itemTemplate.setPrice(itemOptional.get().getPrice());
+            itemTemplate.setQuantity(orderItemRequest.getQuantity());
+            return itemTemplate;
+        }else throw new Exception("exception");
     }
 
+    private OrderItem convertItem(ItemTemplate itemTemplate){
+        OrderItem orderItem = new OrderItem();
+        orderItem.setName(itemTemplate.getItemName());
+        orderItem.setPrice(itemTemplate.getPrice());
+        orderItem.setQuantity(itemTemplate.getQuantity());
+        return orderItem;
+    }
 
-    private int countItem(List<ItemTemplate> items){
+    private int countItem(List<ItemTemplate> items) {
         return items.stream().mapToInt(ItemTemplate::getQuantity).sum();
+    }
+
+    private int calculateQuantity(ItemTemplate itemTemplate) throws Exception {
+        Optional<Item> item = itemRepository.findById(itemTemplate.getId());
+        if (item.isPresent()){
+            return item.get().getQuantity() - itemTemplate.getQuantity();
+        }else throw new Exception("Exception");
+    }
+
+    public UnpaidOrder getOrderById(Long orderId){
+        return redisOrderRepository.findById(orderId).get();
     }
 
 }

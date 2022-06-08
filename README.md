@@ -4,4 +4,4 @@ docker run --name test-project-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRE
 
 ##Run Redis server
 
-docker run --name test-project-redis -d redis:3.6-alpine
+docker-compose up

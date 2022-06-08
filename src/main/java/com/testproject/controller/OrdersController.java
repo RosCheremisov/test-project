@@ -1,14 +1,14 @@
 package com.testproject.controller;
 
-import com.testproject.entity.ItemTemplate;
-import com.testproject.entity.Order;
-import com.testproject.entity.UnpaidOrder;
+import com.testproject.dto.OrderItemRequest;
+import com.testproject.dto.OrderResponse;
+import com.testproject.entity.db.Order;
+import com.testproject.entity.redis.UnpaidOrder;
 import com.testproject.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -19,20 +19,26 @@ public class OrdersController {
 
     private final OrderService orderService;
 
-
     @PostMapping("/new")
-    public ResponseEntity<UnpaidOrder> saveOrder(@RequestBody Map<String, Integer> selectedItems) throws Exception {
-        return ResponseEntity.ok(orderService.createOrder(selectedItems));
+    public ResponseEntity<UnpaidOrder> createNewOrder() {
+        return ResponseEntity.ok(orderService.createOrder());
+    }
+
+    @PostMapping("/add-item")
+    public ResponseEntity<Void> addItem(@RequestBody OrderItemRequest itemRequest) throws Exception {
+        orderService.addItem(itemRequest);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/pay/{orderId}")
-    public ResponseEntity<Order> payAndSaveOrder(@PathVariable("orderId") Long orderId) throws Exception {
-        return ResponseEntity.ok(orderService.payAndSaveOrder(orderId));
+    public ResponseEntity<Order> payAndSave(@PathVariable Long orderId) throws Exception {
+        return ResponseEntity.ok(orderService.payAndSave(orderId));
     }
 
-    @GetMapping("/get")
-    public ResponseEntity<List<UnpaidOrder>> getAll(){
-        return ResponseEntity.ok(orderService.findAll());
+
+    @GetMapping("/get/{orderId}")
+    public ResponseEntity<UnpaidOrder> getOrderById(@PathVariable Long orderId){
+        return ResponseEntity.ok(orderService.getOrderById(orderId));
     }
 
 }

@@ -1,4 +1,4 @@
-package com.testproject;
+package com.testproject.dto;
 
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -15,6 +15,5 @@ public class ItemDto {
     private Long id;
     private String itemName;
     private int price;
-
 
 }

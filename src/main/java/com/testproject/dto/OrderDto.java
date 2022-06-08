@@ -1,7 +1,7 @@
 package com.testproject.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.testproject.entity.Item;
+import com.testproject.entity.db.Item;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

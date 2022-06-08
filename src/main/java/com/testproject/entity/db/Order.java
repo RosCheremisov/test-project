@@ -1,17 +1,14 @@
-package com.testproject.entity;
+package com.testproject.entity.db;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-import org.springframework.data.redis.core.RedisHash;
 
 import javax.persistence.*;
-
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
+import static javax.persistence.GenerationType.IDENTITY;
 import static javax.persistence.GenerationType.SEQUENCE;
 
 @EqualsAndHashCode(exclude = "items")
@@ -28,11 +25,11 @@ public class Order {
     private int price;
     private int quantity;
 
-    @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JoinTable(
-            name = "order_item",
+            name = "order_orderitem",
             joinColumns = @JoinColumn(name = "order_id"),
-            inverseJoinColumns = @JoinColumn(name = "item_id"))
-    private List<Item> items =  new ArrayList<>();
+            inverseJoinColumns = @JoinColumn(name = "order_item_id"))
+    private List<OrderItem> items =  new ArrayList<>();
 
 }
