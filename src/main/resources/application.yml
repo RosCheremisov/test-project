@@ -17,3 +17,7 @@ spring:
     url: jdbc:postgresql://localhost:5432/test_project_db
     username: postgres
     password: postgres
+
+
+redis:
+  time-to-live-in-seconds: 100
