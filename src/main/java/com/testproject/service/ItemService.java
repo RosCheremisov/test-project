@@ -16,15 +16,15 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ItemService {
 
-    private final ItemRepository repository;
+    private final ItemRepository itemRepository;
 
     public List<ItemResponse> findItemByMinPrice() {
-        Optional<Item> optionalItem = repository.findItemByMinPrice();
+        Optional<Item> optionalItem = itemRepository.findItemByMinPrice();
         if (optionalItem.isPresent() && optionalItem.get().getQuantity() > 0) {
             return List.of(convertItemResponse(optionalItem.get()));
         }
         log.info("Not enough items. Other items in storage: ");
-        return repository.findAllByQuantity().stream().map(this::convertItemResponse).collect(Collectors.toList());
+        return itemRepository.findAllByQuantity().stream().map(this::convertItemResponse).collect(Collectors.toList());
     }
 
 

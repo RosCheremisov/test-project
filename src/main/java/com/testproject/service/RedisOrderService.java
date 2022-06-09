@@ -27,7 +27,7 @@ public class RedisOrderService {
         return redisOrderRepository.save(new UnpaidOrder());
     }
 
-    public void addItem(OrderItemRequest itemRequest) throws Exception {
+    public void addItem(OrderItemRequest itemRequest) {
         Optional<UnpaidOrder> orderOptional = redisOrderRepository.findById(itemRequest.getOrderId());
         if (orderOptional.isPresent()) {
             UnpaidOrder unpaidOrder = prepareUnpaidOrder(orderOptional.get(), prepareItemTemplate(itemRequest));

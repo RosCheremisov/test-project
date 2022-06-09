@@ -36,11 +36,4 @@ public class OrdersController {
     public ResponseEntity<Order> payAndSave(@PathVariable Long orderId) throws Exception {
         return ResponseEntity.ok(orderService.payAndSave(orderId));
     }
-
-
-    @GetMapping("/get/{orderId}")
-    public ResponseEntity<UnpaidOrder> getOrderById(@PathVariable Long orderId) {
-        return ResponseEntity.ok(orderService.getOrderById(orderId));
-    }
-
 }

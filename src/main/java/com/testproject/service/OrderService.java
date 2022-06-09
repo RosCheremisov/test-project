@@ -37,15 +37,15 @@ public class OrderService {
         if (orderOptional.isPresent()) {
             for (ItemTemplate item : orderOptional.get().getItems()) {
                 if (!isPositiveBalance(item)) {
-                    log.error("Item with ID : " + " haven't enough quantity");
-                    throw new TestProjectException();
+                    log.error("Item with ID : " + item.getId() + " haven't enough quantity");
+                    throw new TestProjectException("Haven't enough quantity");
                 }
                 itemRepository.reduceBalance(calculateQuantity(item), item.getItemName());
             }
             return orderRepository.save(prepareOrder(orderOptional.get()));
         }
         log.error("Order not found or storage time is over");
-        throw new OrderNotFoundException();
+        throw new OrderNotFoundException("Order not found or storage time is over");
     }
 
     private boolean isPositiveBalance(ItemTemplate itemTemplate) {
@@ -76,7 +76,7 @@ public class OrderService {
             return item.get().getQuantity() - itemTemplate.getQuantity();
         }
         log.error("Item not found");
-        throw new ItemNotFoundException();
+        throw new ItemNotFoundException("Item not found");
     }
 }
 
