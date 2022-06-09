@@ -5,6 +5,7 @@ import com.testproject.dto.OrderResponse;
 import com.testproject.entity.db.Order;
 import com.testproject.entity.redis.UnpaidOrder;
 import com.testproject.service.OrderService;
+import com.testproject.service.RedisOrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,15 +19,16 @@ import java.util.Map;
 public class OrdersController {
 
     private final OrderService orderService;
+    private final RedisOrderService redisOrderService;
 
     @PostMapping("/new")
     public ResponseEntity<UnpaidOrder> createNewOrder() {
-        return ResponseEntity.ok(orderService.createOrder());
+        return ResponseEntity.ok(redisOrderService.createOrder());
     }
 
     @PostMapping("/add-item")
     public ResponseEntity<Void> addItem(@RequestBody OrderItemRequest itemRequest) throws Exception {
-        orderService.addItem(itemRequest);
+        redisOrderService.addItem(itemRequest);
         return ResponseEntity.noContent().build();
     }
 
@@ -37,7 +39,7 @@ public class OrdersController {
 
 
     @GetMapping("/get/{orderId}")
-    public ResponseEntity<UnpaidOrder> getOrderById(@PathVariable Long orderId){
+    public ResponseEntity<UnpaidOrder> getOrderById(@PathVariable Long orderId) {
         return ResponseEntity.ok(orderService.getOrderById(orderId));
     }
 

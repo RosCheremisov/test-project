@@ -1,6 +1,7 @@
 package com.testproject.dto;
 
 import lombok.Builder;
+import lombok.Data;
 import lombok.Value;
 
 @Value
@@ -9,6 +10,7 @@ public class ItemResponse {
 
     Long id;
     String name;
+    int price;
     int quantity;
 
 }

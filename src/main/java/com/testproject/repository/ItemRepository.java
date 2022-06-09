@@ -13,8 +13,11 @@ import java.util.Set;
 @Repository
 public interface ItemRepository extends CrudRepository<Item, Long> {
 
-    @Query("SELECT item from Item item where item.price = (SELECT MAX(item.price) FROM item)")
+    @Query("SELECT item from Item item where item.price = (SELECT MIN(item.price) FROM item)")
     Optional<Item> findItemByMinPrice();
+
+    @Query("SELECT item from Item item where item.quantity > 0")
+    List<Item> findAllByQuantity();
 
     @Modifying
     @Query(value = "UPDATE testproject.item SET quantity = :quantity WHERE name = :name" , nativeQuery= true)
